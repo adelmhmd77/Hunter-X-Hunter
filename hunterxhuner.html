@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <title>HUNTER × HUNTER — The Last Mission</title>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            nen:    '#7DF9FF',
+            blood:  '#C0392B',
+            gold:   '#F1C40F',
+            dark:   '#080C14',
+            panel:  '#0D1421',
+            smoke:  '#1A2235',
+          },
+          fontFamily: {
+            title:  ['"Cinzel Decorative"', 'serif'],
+            serif:  ['Cinzel', 'serif'],
+            body:   ['Rajdhani', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: #080C14;
+      color: #e2e8f0;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+
+    /* ── NEN CURSOR ── */
+    body::after {
+      content: '';
+      position: fixed;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #7DF9FF88 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.2s;
+      top: var(--cy, -100px);
+      left: var(--cx, -100px);
+    }
+
+    /* ── SCANLINES ── */
+    .scanlines::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+        rgba(0,0,0,0.15) 4px
+      );
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* ── NEN AURA ANIMATIONS ── */
+    @keyframes nen-pulse {
+      0%, 100% { box-shadow: 0 0 12px #7DF9FF44, 0 0 30px #7DF9FF22; }
+      50%       { box-shadow: 0 0 25px #7DF9FFaa, 0 0 60px #7DF9FF44; }
+    }
+    @keyframes nen-flicker {
+      0%,100% { opacity:1; } 47% { opacity:1; } 50% { opacity:.7; } 53% { opacity:1; }
+    }
+    @keyframes float-up {
+      0%   { transform: translateY(0px) rotate(0deg); opacity:0.6; }
+      100% { transform: translateY(-80px) rotate(15deg); opacity:0; }
+    }
+    @keyframes hero-reveal {
+      from { opacity:0; transform: translateY(40px) skewY(2deg); }
+      to   { opacity:1; transform: translateY(0) skewY(0); }
+    }
+    @keyframes slide-in-left {
+      from { opacity:0; transform: translateX(-60px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+    @keyframes diagonal-wipe {
+      from { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
+      to   { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+    }
+    @keyframes spin-slow { to { transform: rotate(360deg); } }
+    @keyframes blood-drip {
+      0%   { transform: scaleY(0); transform-origin: top; }
+      100% { transform: scaleY(1); transform-origin: top; }
+    }
+    @keyframes particle-float {
+      0%   { transform: translateY(100vh) translateX(0) scale(0); opacity:0; }
+      10%  { opacity:1; }
+      90%  { opacity:.5; }
+      100% { transform: translateY(-10vh) translateX(var(--dx)) scale(1.5); opacity:0; }
+    }
+
+    .nen-glow    { animation: nen-pulse 2.5s ease-in-out infinite; }
+    .nen-flicker { animation: nen-flicker 4s ease-in-out infinite; }
+    .hero-reveal { animation: hero-reveal 1s cubic-bezier(.22,1,.36,1) both; }
+    .slide-left  { animation: slide-in-left 0.8s cubic-bezier(.22,1,.36,1) both; }
+
+    /* ── PARTICLES ── */
+    .particle {
+      position: fixed;
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: #7DF9FF;
+      pointer-events: none;
+      z-index: 0;
+      animation: particle-float var(--dur) linear infinite;
+      animation-delay: var(--delay);
+    }
+
+    /* ── HERO BG ── */
+    .hero-bg {
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 50%, #1a0a2e 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 20% 80%, #0a1a2e 0%, transparent 60%),
+        linear-gradient(135deg, #080C14 0%, #0D1421 50%, #080C14 100%);
+    }
+
+    /* ── NEN GRID ── */
+    .nen-grid {
+      background-image:
+        linear-gradient(rgba(125,249,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(125,249,255,0.04) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    /* ── CARD STYLES ── */
+    .char-card {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.4s cubic-bezier(.22,1,.36,1);
+    }
+    .char-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 40%, rgba(8,12,20,0.95) 100%);
+      z-index: 1;
+    }
+    .char-card:hover { transform: translateY(-8px) scale(1.02); }
+    .char-card:hover .char-aura { opacity: 1; }
+    .char-aura {
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 0;
+    }
+
+    /* ── ARC TIMELINE ── */
+    .arc-line::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 50%;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #7DF9FF44, transparent);
+    }
+
+    /* ── DIVIDER ── */
+    .hxh-divider {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #7DF9FF, #C0392B, #7DF9FF, transparent);
+    }
+
+    /* ── RATING STARS ── */
+    .star { color: #F1C40F; }
+
+    /* ── NAV ── */
+    .nav-link {
+      position: relative;
+      font-family: 'Cinzel', serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      color: #94a3b8;
+      transition: color 0.3s;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0;
+      width: 0; height: 1px;
+      background: #7DF9FF;
+      transition: width 0.3s;
+    }
+    .nav-link:hover { color: #7DF9FF; }
+    .nav-link:hover::after { width: 100%; }
+
+    /* ── BUTTONS ── */
+    .btn-primary {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, #C0392B, #8B0000);
+      border: 1px solid #C0392B;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.15em;
+      transition: all 0.3s;
+    }
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #e74c3c, #C0392B);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .btn-primary:hover::before { opacity: 1; }
+    .btn-primary:hover { box-shadow: 0 0 30px #C0392B88; transform: translateY(-2px); }
+
+    .btn-outline {
+      border: 1px solid #7DF9FF44;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.15em;
+      color: #7DF9FF;
+      transition: all 0.3s;
+      background: transparent;
+    }
+    .btn-outline:hover {
+      background: #7DF9FF11;
+      border-color: #7DF9FF;
+      box-shadow: 0 0 20px #7DF9FF22;
+      transform: translateY(-2px);
+    }
+
+    /* ── EPISODE CARDS ── */
+    .ep-card {
+      border-left: 3px solid #7DF9FF33;
+      transition: all 0.3s;
+    }
+    .ep-card:hover {
+      border-left-color: #7DF9FF;
+      background: #1A2235;
+      transform: translateX(6px);
+    }
+
+    /* ── MOBILE MENU ── */
+    #mobileMenu { transition: max-height 0.4s ease, opacity 0.3s; }
+
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── CUSTOM SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #080C14; }
+    ::-webkit-scrollbar-thumb { background: #7DF9FF44; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #7DF9FF88; }
+  </style>
+</head>
+<body>
+
+  <!-- PARTICLES -->
+  <div id="particles" class="fixed inset-0 pointer-events-none z-0 overflow-hidden"></div>
+
+  <!-- ══════════════════════════════════════
+       NAV
+  ══════════════════════════════════════ -->
+  <header class="fixed top-0 w-full z-50 border-b border-white/5" style="background:rgba(8,12,20,0.92);backdrop-filter:blur(12px);">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between h-16">
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-3 group">
+        <div class="w-8 h-8 border border-[#7DF9FF] rotate-45 flex items-center justify-center group-hover:border-[#C0392B] transition-colors duration-300 nen-glow">
+          <div class="w-2 h-2 bg-[#7DF9FF] rotate-45 group-hover:bg-[#C0392B] transition-colors duration-300"></div>
+        </div>
+        <span class="font-title text-sm sm:text-base text-white tracking-widest">HXH</span>
+      </a>
+
+      <!-- Desktop links -->
+      <ul class="hidden md:flex items-center gap-8">
+        <li><a href="#story" class="nav-link">Story</a></li>
+        <li><a href="#characters" class="nav-link">Characters</a></li>
+        <li><a href="#arcs" class="nav-link">Arcs</a></li>
+        <li><a href="#episodes" class="nav-link">Episodes</a></li>
+        <li><a href="#world" class="nav-link">Nen System</a></li>
+      </ul>
+
+      <!-- CTA -->
+      <div class="flex items-center gap-3">
+        <button class="hidden sm:block btn-primary text-white text-xs px-5 py-2 rounded cursor-pointer relative z-10">
+          ▶ WATCH NOW
+        </button>
+        <button id="menuBtn" class="md:hidden text-[#7DF9FF] text-xl focus:outline-none">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Mobile menu -->
+    <div id="mobileMenu" class="md:hidden hidden overflow-hidden px-6 pb-6 flex-col gap-4 border-t border-white/5" style="background:rgba(8,12,20,0.98);">
+      <a href="#story" class="nav-link block py-2">Story</a>
+      <a href="#characters" class="nav-link block py-2">Characters</a>
+      <a href="#arcs" class="nav-link block py-2">Arcs</a>
+      <a href="#episodes" class="nav-link block py-2">Episodes</a>
+      <a href="#world" class="nav-link block py-2">Nen System</a>
+      <button class="btn-primary text-white text-sm px-6 py-3 rounded w-full relative z-10">▶ WATCH NOW</button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════
+       HERO
+  ══════════════════════════════════════ -->
+  <section class="relative min-h-screen hero-bg nen-grid scanlines flex items-center overflow-hidden" id="hero">
+
+    <!-- Decorative nen rings -->
+    <div class="absolute top-1/2 right-[-100px] w-[500px] h-[500px] border border-[#7DF9FF11] rounded-full -translate-y-1/2 spin-slow" style="animation-duration:20s;"></div>
+    <div class="absolute top-1/2 right-[-60px] w-[380px] h-[380px] border border-[#7DF9FF1A] rounded-full -translate-y-1/2 spin-slow" style="animation-duration:14s;animation-direction:reverse;"></div>
+    <div class="absolute top-1/2 right-[-20px] w-[260px] h-[260px] border border-[#7DF9FF22] rounded-full -translate-y-1/2 spin-slow" style="animation-duration:9s;"></div>
+
+    <!-- Diagonal accent -->
+    <div class="absolute inset-y-0 right-0 w-[45%] hidden lg:block" style="background:linear-gradient(135deg,transparent 0%,#0D1421 40%);clip-path:polygon(20% 0,100% 0,100% 100%,0 100%);">
+      <!-- Character silhouette area -->
+      <div class="absolute inset-0 flex items-center justify-center opacity-20">
+        <div class="font-title text-[180px] text-[#7DF9FF] leading-none select-none" style="text-shadow:0 0 80px #7DF9FFaa;">ゴン</div>
+      </div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 pt-24 pb-16 w-full">
+      <div class="max-w-2xl">
+
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 border border-[#7DF9FF33] bg-[#7DF9FF08] px-4 py-2 rounded-full mb-6 hero-reveal" style="animation-delay:.1s">
+          <div class="w-2 h-2 rounded-full bg-[#7DF9FF] nen-flicker"></div>
+          <span class="font-serif text-xs text-[#7DF9FF] tracking-[0.2em]">YOSHIHIRO TOGASHI · 1998 — PRESENT</span>
+        </div>
+
+        <!-- Title -->
+        <h1 class="font-title text-5xl sm:text-6xl lg:text-7xl xl:text-8xl text-white leading-none mb-2 hero-reveal" style="animation-delay:.2s;text-shadow:0 0 60px #7DF9FF22;">
+          HUNTER
+        </h1>
+        <h1 class="font-title text-5xl sm:text-6xl lg:text-7xl xl:text-8xl text-[#7DF9FF] leading-none mb-2 hero-reveal nen-flicker" style="animation-delay:.3s;text-shadow:0 0 60px #7DF9FFaa;">
+          ×
+        </h1>
+        <h1 class="font-title text-5xl sm:text-6xl lg:text-7xl xl:text-8xl text-white leading-none mb-6 hero-reveal" style="animation-delay:.4s;text-shadow:0 0 60px #7DF9FF22;">
+          HUNTER
+        </h1>
+
+        <!-- Tagline -->
+        <p class="font-serif text-[#C0392B] text-lg sm:text-xl tracking-[0.3em] uppercase mb-4 hero-reveal" style="animation-delay:.5s">
+          — The Last Mission —
+        </p>
+
+        <!-- Desc -->
+        <p class="text-slate-400 text-base sm:text-lg leading-relaxed max-w-lg mb-8 hero-reveal" style="animation-delay:.6s;font-size:1.05rem;">
+          In a world where Hunters seek treasures, monsters, and truths — Gon Freecss embarks on a journey to find his father, only to discover that the greatest hunt is for the meaning of humanity itself. 
+          <span class="text-[#7DF9FF]">Nen</span> flows. Blood is spilled. Bonds are tested beyond reason.
+        </p>
+
+        <!-- Meta pills -->
+        <div class="flex flex-wrap gap-3 mb-8 hero-reveal" style="animation-delay:.65s">
+          <span class="bg-[#7DF9FF11] border border-[#7DF9FF33] text-[#7DF9FF] text-xs font-serif px-3 py-1 rounded tracking-widest">TV-14</span>
+          <span class="bg-[#C0392B11] border border-[#C0392B33] text-[#e74c3c] text-xs font-serif px-3 py-1 rounded tracking-widest">ACTION</span>
+          <span class="bg-white/5 border border-white/10 text-slate-400 text-xs font-serif px-3 py-1 rounded tracking-widest">ADVENTURE</span>
+          <span class="bg-white/5 border border-white/10 text-slate-400 text-xs font-serif px-3 py-1 rounded tracking-widest">148 EPISODES</span>
+          <span class="bg-white/5 border border-white/10 text-slate-400 text-xs font-serif px-3 py-1 rounded tracking-widest">2011 · MADHOUSE</span>
+        </div>
+
+        <!-- Rating -->
+        <div class="flex items-center gap-3 mb-8 hero-reveal" style="animation-delay:.7s">
+          <div class="flex gap-1">
+            <span class="star text-xl">★</span><span class="star text-xl">★</span><span class="star text-xl">★</span><span class="star text-xl">★</span><span class="star text-xl">★</span>
+          </div>
+          <span class="text-[#F1C40F] font-bold text-lg">9.0</span>
+          <span class="text-slate-500 text-sm">/ 10 — MyAnimeList</span>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 hero-reveal" style="animation-delay:.8s">
+          <button class="btn-primary text-white px-8 py-4 rounded text-sm relative z-10 flex items-center gap-3 justify-center">
+            <i class="fa-solid fa-play"></i> WATCH NOW
+          </button>
+          <button class="btn-outline px-8 py-4 rounded text-sm flex items-center gap-3 justify-center">
+            <i class="fa-solid fa-plus"></i> ADD TO WATCHLIST
+          </button>
+          <button class="btn-outline px-8 py-4 rounded text-sm flex items-center gap-3 justify-center">
+            <i class="fa-solid fa-info-circle"></i> TRAILER
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom gradient -->
+    <div class="absolute bottom-0 left-0 right-0 h-32 pointer-events-none" style="background:linear-gradient(transparent, #080C14);"></div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       STORY
+  ══════════════════════════════════════ -->
+  <section id="story" class="py-24 px-4 sm:px-8 bg-[#080C14] relative">
+    <div class="hxh-divider mb-16"></div>
+    <div class="max-w-7xl mx-auto">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+        <!-- Text -->
+        <div class="reveal">
+          <span class="font-serif text-xs text-[#7DF9FF] tracking-[0.3em] uppercase mb-4 block">The Story</span>
+          <h2 class="font-title text-3xl sm:text-4xl lg:text-5xl text-white mb-6 leading-tight">
+            The World Is Full of Wonders
+          </h2>
+          <p class="text-slate-400 text-base sm:text-lg leading-relaxed mb-6">
+            <span class="text-white font-semibold">Gon Freecss</span> grew up believing his father was dead — until he learned the truth: Ging Freecss is one of the world's greatest Hunters. Driven to find him, Gon takes the Hunter Examination, a brutal test that fewer than one in ten thousand ever survive.
+          </p>
+          <p class="text-slate-400 text-base sm:text-lg leading-relaxed mb-6">
+            Along the way he forges bonds with <span class="text-[#7DF9FF]">Killua</span>, an assassin escaping his destiny; <span class="text-[#e74c3c]">Kurapika</span>, driven by the ghost of genocide; and <span class="text-[#F1C40F]">Leorio</span>, a man who wants to be a doctor to avenge the poor. Their paths spiral into conspiracies, wars between humans and Chimera Ants, and a revelation that rocks the foundations of what it means to be alive.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            Hunter × Hunter is not a story about the strongest. It is a story about the <span class="text-white italic">most human</span>.
+          </p>
+        </div>
+
+        <!-- Stats grid -->
+        <div class="grid grid-cols-2 gap-4 reveal">
+          <div class="bg-[#0D1421] border border-[#7DF9FF11] rounded-2xl p-6 hover:border-[#7DF9FF33] transition">
+            <p class="font-title text-4xl text-[#7DF9FF] mb-2">148</p>
+            <p class="font-serif text-xs text-slate-500 tracking-widest uppercase">Episodes</p>
+          </div>
+          <div class="bg-[#0D1421] border border-[#C0392B11] rounded-2xl p-6 hover:border-[#C0392B33] transition">
+            <p class="font-title text-4xl text-[#C0392B] mb-2">6</p>
+            <p class="font-serif text-xs text-slate-500 tracking-widest uppercase">Major Arcs</p>
+          </div>
+          <div class="bg-[#0D1421] border border-[#F1C40F11] rounded-2xl p-6 hover:border-[#F1C40F33] transition">
+            <p class="font-title text-4xl text-[#F1C40F] mb-2">2011</p>
+            <p class="font-serif text-xs text-slate-500 tracking-widest uppercase">Remake Year</p>
+          </div>
+          <div class="bg-[#0D1421] border border-[#7DF9FF11] rounded-2xl p-6 hover:border-[#7DF9FF33] transition">
+            <p class="font-title text-4xl text-[#7DF9FF] mb-2">9.0</p>
+            <p class="font-serif text-xs text-slate-500 tracking-widest uppercase">MAL Score</p>
+          </div>
+          <div class="col-span-2 bg-[#0D1421] border border-white/5 rounded-2xl p-6 hover:border-[#C0392B33] transition">
+            <p class="font-title text-3xl text-white mb-2">MADHOUSE</p>
+            <p class="font-serif text-xs text-slate-500 tracking-widest uppercase">Animation Studio · Director: Hiroshi Koujina</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       CHARACTERS
+  ══════════════════════════════════════ -->
+  <section id="characters" class="py-24 px-4 sm:px-8 bg-[#0D1421] relative">
+    <div class="hxh-divider mb-16"></div>
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-12 reveal">
+        <span class="font-serif text-xs text-[#7DF9FF] tracking-[0.3em] uppercase mb-3 block">The Hunters</span>
+        <h2 class="font-title text-3xl sm:text-4xl lg:text-5xl text-white">Characters</h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <!-- GON -->
+        <div class="char-card bg-[#080C14] rounded-2xl overflow-hidden reveal" style="animation-delay:.1s">
+          <div class="char-aura" style="background:linear-gradient(135deg,#7DF9FF33,transparent);border:1px solid #7DF9FF44;border-radius:1rem;"></div>
+          <div class="relative h-48 flex items-center justify-center overflow-hidden" style="background:radial-gradient(ellipse at center, #0a2a1a 0%, #080C14 100%);">
+            <div class="text-[7rem] leading-none select-none" style="filter:drop-shadow(0 0 30px #7DF9FF);">⚡</div>
+            <div class="absolute bottom-0 left-0 right-0 h-24" style="background:linear-gradient(transparent,#080C14);"></div>
+          </div>
+          <div class="relative z-10 p-5">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-title text-lg text-white">Gon Freecss</h3>
+                <p class="font-serif text-xs text-[#7DF9FF] tracking-widest uppercase">Protagonist</p>
+              </div>
+              <span class="text-xs bg-[#7DF9FF11] border border-[#7DF9FF33] text-[#7DF9FF] px-2 py-1 rounded font-serif">ENHANCER</span>
+            </div>
+            <p class="text-slate-500 text-sm leading-relaxed">A boy with extraordinary potential and boundless optimism. His Nen is Jajanken — a powerful rock-paper-scissors technique that grows with his emotions.</p>
+            <div class="mt-4 flex gap-2 flex-wrap">
+              <span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded">Jajanken</span>
+              <span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded">Limitation Nen</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KILLUA -->
+        <div class="char-card bg-[#080C14] rounded-2xl overflow-hidden reveal" style="animation-delay:.2s">
+          <div class="char-aura" style="background:linear-gradient(135deg,#94a3b833,transparent);border:1px solid #94a3b844;border-radius:1rem;"></div>
+          <div class="relative h-48 flex items-center justify-center overflow-hidden" style="background:radial-gradient(ellipse at center, #0a0a2a 0%, #080C14 100%);">
+            <div class="text-[7rem] leading-none select-none" style="filter:drop-shadow(0 0 30px #94a3b8);">⚡</div>
+            <div class="absolute bottom-0 left-0 right-0 h-24" style="background:linear-gradient(transparent,#080C14);"></div>
+          </div>
+          <div class="relative z-10 p-5">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-title text-lg text-white">Killua Zoldyck</h3>
+                <p class="font-serif text-xs text-slate-400 tracking-widest uppercase">Deuteragonist</p>
+              </div>
+              <span class="text-xs bg-slate-800 border border-slate-600 text-slate-300 px-2 py-1 rounded font-serif">TRANSMUTER</span>
+            </div>
+            <p class="text-slate-500 text-sm leading-relaxed">Born into the world's deadliest assassin family. Trained from birth to kill without mercy. His Godspeed technique channels electricity at lightning-fast reflex speed.</p>
+            <div class="mt-4 flex gap-2 flex-wrap">
+              <span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded">Godspeed</span>
+              <span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded">Thunderbolt</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KURAPIKA -->
+        <div class="char-card bg-[#080C14] rounded-2xl overflow-hidden reveal" style="animation-delay:.3s">
+          <div class="char-aura" style="background:linear-gradient(135deg,#C0392B33,transparent);border:1px solid #C0392B44;border-radius:1rem;"></div>
+          <div class="relative h-48 flex items-center justify-center overflow-hidden" style="background:radial-gradient(ellipse at center, #2a0a0a 0%, #080C14 100%);">
+            <div class="text-[7rem] leading-none select-none" style="filter:drop-shadow(0 0 30px #C0392B);">🔗</div>
+            <div class="absolute bottom-0 left-0 right-0 h-24" style="background:linear-gradient(transparent,#080C14);"></div>
+          </div>
+          <div class="relative z-10 p-5">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-title text-lg text-white">Kurapika</h3>
+                <p class="font-serif text-xs text-[#e74c3c] tracking-widest uppercase">The Last Kurta</p>
+              </div>
+              <span class="text-xs bg-[#C0392B11] border border-[#C0392B33] text-[#e74c3c] px-2 py-1 rounded font-serif">CONJURER</span>
+            </div>
+            <p class="text-slate-500 text-sm leading-relaxed">Sole survivor of the Kurta Clan, massacred by the Phantom Troupe. His scarlet eyes blaze red with rage — and in that state, he becomes a Specialist of absolute power.</p>
+            <div class="mt-4 flex gap-2 flex-wrap">
+              <span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded">Emperor Time</span>
+              <span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded">Steal Chain</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- LEORIO -->
+        <div class="char-card bg-[#080C14] rounded-2xl overflow-hidden reveal" style="animation-delay:.4s">
+          <div class="char-aura" style="background:linear-gradient(135deg,#F1C40F33,transparent);border:1px solid #F1C40F44;border-radius:1rem;"></div>
+          <div class="relative h-48 flex items-center justify-center overflow-hidden" style="background:radial-gradient(ellipse at center, #1a1a0a 0%, #080C14 100%);">
+            <div class="text-[7rem] leading-none select-none" style="filter:drop-shadow(0 0 30px #F1C40F);">💼</div>
+            <div class="absolute bottom-0 left-0 right-0 h-24" style="background:linear-gradient(transparent,#080C14);"></div>
+          </div>
+          <div class="relative z-10 p-5">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-title text-lg text-white">Leorio Paladiknight</h3>
+                <p class="font-serif text-xs text-[#F1C40F] tracking-widest uppercase">Future Doctor</p>
+              </div>
+              <span class="text-xs bg-[#F1C40F11] border border-[#F1C40F33] text-[#F1C40F] px-2 py-1 rounded font-serif">EMITTER</span>
+            </div>
+            <p class="text-slate-500 text-sm leading-relaxed">Wants to become a doctor to serve the poor — in memory of his best friend Pietro. His boisterous personality hides a heart of unwavering moral courage.</p>
+            <div class="mt-4 flex gap-2 flex-wrap">
+              <span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded">Remote Punch</span>
+              <span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded">Nen Scalpel</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Villains row -->
+      <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+        <!-- Hisoka -->
+        <div class="bg-[#080C14] border border-[#C0392B22] rounded-2xl p-6 flex gap-5 items-start hover:border-[#C0392B55] transition reveal" style="animation-delay:.5s">
+          <div class="text-5xl flex-shrink-0">🃏</div>
+          <div>
+            <h3 class="font-title text-base text-white mb-1">Hisoka Morow</h3>
+            <p class="font-serif text-xs text-[#e74c3c] tracking-widest mb-2">TRANSMUTER · VILLAIN/WILDCARD</p>
+            <p class="text-slate-500 text-sm">The magician. Fights only for the thrill. His Bungee Gum has the properties of both rubber and gum. He is neither ally nor enemy — only hungry for worthy prey.</p>
+          </div>
+        </div>
+
+        <!-- Meruem -->
+        <div class="bg-[#080C14] border border-[#7DF9FF22] rounded-2xl p-6 flex gap-5 items-start hover:border-[#7DF9FF55] transition reveal" style="animation-delay:.6s">
+          <div class="text-5xl flex-shrink-0">👑</div>
+          <div>
+            <h3 class="font-title text-base text-white mb-1">Meruem</h3>
+            <p class="font-serif text-xs text-[#7DF9FF] tracking-widest mb-2">SPECIALIST · CHIMERA ANT KING</p>
+            <p class="text-slate-500 text-sm">Born to rule all life on earth. Capable of absorbing the Nen of those he consumes. The most powerful character in the series — until he discovers a human girl who defeats him at board games.</p>
+          </div>
+        </div>
+
+        <!-- Chrollo -->
+        <div class="bg-[#080C14] border border-[#94a3b822] rounded-2xl p-6 flex gap-5 items-start hover:border-[#94a3b855] transition reveal" style="animation-delay:.7s">
+          <div class="text-5xl flex-shrink-0">📖</div>
+          <div>
+            <h3 class="font-title text-base text-white mb-1">Chrollo Lucilfer</h3>
+            <p class="font-serif text-xs text-slate-400 tracking-widest mb-2">SPECIALIST · PHANTOM TROUPE LEADER</p>
+            <p class="text-slate-500 text-sm">Leader of the Phantom Troupe. His Skill Hunter ability steals and stores other people's Nen abilities in a book. Cold, calm, and catastrophically dangerous.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       ARCS
+  ══════════════════════════════════════ -->
+  <section id="arcs" class="py-24 px-4 sm:px-8 bg-[#080C14]">
+    <div class="hxh-divider mb-16"></div>
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-14 reveal">
+        <span class="font-serif text-xs text-[#7DF9FF] tracking-[0.3em] uppercase mb-3 block">The Journey</span>
+        <h2 class="font-title text-3xl sm:text-4xl lg:text-5xl text-white">Story Arcs</h2>
+      </div>
+
+      <div class="space-y-4">
+
+        <!-- Arc cards -->
+        <div class="group bg-[#0D1421] border border-white/5 rounded-2xl p-6 sm:p-8 hover:border-[#7DF9FF22] transition-all duration-300 reveal">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="flex-shrink-0 w-14 h-14 border border-[#7DF9FF33] rounded-xl flex items-center justify-center text-2xl group-hover:border-[#7DF9FF] transition">01</div>
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-3 mb-1">
+                <h3 class="font-title text-lg sm:text-xl text-white">Hunter Exam Arc</h3>
+                <span class="text-xs font-serif text-[#7DF9FF] border border-[#7DF9FF33] px-2 py-0.5 rounded tracking-widest">EP 1–21</span>
+              </div>
+              <p class="text-slate-500 text-sm sm:text-base leading-relaxed">Where it all begins. Gon, Killua, Kurapika and Leorio meet during the brutal Hunter Examination — a multi-phase test of survival, intellect, and spirit that transforms strangers into brothers.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="group bg-[#0D1421] border border-white/5 rounded-2xl p-6 sm:p-8 hover:border-[#C0392B22] transition-all duration-300 reveal">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="flex-shrink-0 w-14 h-14 border border-[#C0392B33] rounded-xl flex items-center justify-center text-2xl group-hover:border-[#C0392B] transition text-[#C0392B] font-serif">02</div>
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-3 mb-1">
+                <h3 class="font-title text-lg sm:text-xl text-white">Zoldyck Family Arc</h3>
+                <span class="text-xs font-serif text-[#e74c3c] border border-[#C0392B33] px-2 py-0.5 rounded tracking-widest">EP 22–26</span>
+              </div>
+              <p class="text-slate-500 text-sm sm:text-base leading-relaxed">To save Killua from his assassin family's compound, Gon ventures into Kukuroo Mountain — an estate guarded by butler-warriors whose weakest member can lift a 4-ton gate with one hand.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="group bg-[#0D1421] border border-white/5 rounded-2xl p-6 sm:p-8 hover:border-[#F1C40F22] transition-all duration-300 reveal">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="flex-shrink-0 w-14 h-14 border border-[#F1C40F33] rounded-xl flex items-center justify-center text-2xl group-hover:border-[#F1C40F] transition text-[#F1C40F] font-serif">03</div>
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-3 mb-1">
+                <h3 class="font-title text-lg sm:text-xl text-white">Heavens Arena Arc</h3>
+                <span class="text-xs font-serif text-[#F1C40F] border border-[#F1C40F33] px-2 py-0.5 rounded tracking-widest">EP 27–36</span>
+              </div>
+              <p class="text-slate-500 text-sm sm:text-base leading-relaxed">Gon and Killua train at the 251-floor battle tower where fighters wager their lives for prize money. Here they awaken their Nen — and encounter Hisoka for the first unforgettable time.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="group bg-[#0D1421] border border-white/5 rounded-2xl p-6 sm:p-8 hover:border-[#C0392B33] transition-all duration-300 reveal">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="flex-shrink-0 w-14 h-14 border border-[#C0392B44] rounded-xl flex items-center justify-center text-2xl group-hover:border-[#C0392B] transition text-[#C0392B] font-serif">04</div>
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-3 mb-1">
+                <h3 class="font-title text-lg sm:text-xl text-white">Yorknew City Arc</h3>
+                <span class="text-xs font-serif text-[#e74c3c] border border-[#C0392B33] px-2 py-0.5 rounded tracking-widest">EP 37–58</span>
+              </div>
+              <p class="text-slate-500 text-sm sm:text-base leading-relaxed">The Phantom Troupe descend on Yorknew City to steal from the Underground Auction. Kurapika uses his Emperor Time to chain them — and his own lifespan pays for every second he uses it.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="group bg-[#0D1421] border border-white/5 rounded-2xl p-6 sm:p-8 hover:border-[#7DF9FF33] transition-all duration-300 reveal">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="flex-shrink-0 w-14 h-14 border border-[#7DF9FF33] rounded-xl flex items-center justify-center text-2xl group-hover:border-[#7DF9FF] transition font-serif">05</div>
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-3 mb-1">
+                <h3 class="font-title text-lg sm:text-xl text-white">Greed Island Arc</h3>
+                <span class="text-xs font-serif text-[#7DF9FF] border border-[#7DF9FF33] px-2 py-0.5 rounded tracking-widest">EP 59–75</span>
+              </div>
+              <p class="text-slate-500 text-sm sm:text-base leading-relaxed">A rare game created by Ging Freecss himself becomes the next lead. Inside the game world — which is an actual physical island run by Nen — they hunt 100 specified cards to win and find clues to Ging.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="group bg-[#0D1421] border border-white/5 rounded-2xl p-6 sm:p-8 hover:border-[#C0392B55] transition-all duration-300 reveal">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="flex-shrink-0 w-14 h-14 border border-[#C0392B55] rounded-xl flex items-center justify-center text-2xl group-hover:border-[#C0392B] transition text-[#C0392B] font-serif">06</div>
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-3 mb-1">
+                <h3 class="font-title text-lg sm:text-xl text-white">Chimera Ant Arc</h3>
+                <span class="text-xs font-serif bg-[#C0392B] text-white border border-[#C0392B] px-2 py-0.5 rounded tracking-widest">EP 76–136 · MAGNUM OPUS</span>
+              </div>
+              <p class="text-slate-500 text-sm sm:text-base leading-relaxed">The longest, darkest, most philosophically complex arc in anime history. A new species — the Chimera Ants — emerges with human intelligence and monstrous Nen. Their king, Meruem, may be god. And Gon loses everything trying to stop them.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       EPISODES
+  ══════════════════════════════════════ -->
+  <section id="episodes" class="py-24 px-4 sm:px-8 bg-[#0D1421]">
+    <div class="hxh-divider mb-16"></div>
+    <div class="max-w-7xl mx-auto">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 reveal">
+        <div>
+          <span class="font-serif text-xs text-[#7DF9FF] tracking-[0.3em] uppercase mb-3 block">Now Streaming</span>
+          <h2 class="font-title text-3xl sm:text-4xl text-white">Featured Episodes</h2>
+        </div>
+        <button class="btn-outline px-5 py-2 rounded text-xs self-start sm:self-auto">VIEW ALL 148 →</button>
+      </div>
+
+      <div class="space-y-3">
+
+        <div class="ep-card bg-[#080C14] rounded-xl px-5 sm:px-8 py-5 flex items-center gap-5 cursor-pointer reveal">
+          <span class="font-title text-[#7DF9FF] text-lg w-8 flex-shrink-0">01</span>
+          <div class="w-10 h-10 bg-[#7DF9FF11] border border-[#7DF9FF33] rounded-lg flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-play text-[#7DF9FF] text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif text-white text-sm sm:text-base truncate">Departure × And × Friends</h4>
+            <p class="text-slate-600 text-xs truncate">Hunter Exam Arc · The journey begins</p>
+          </div>
+          <span class="text-slate-600 text-xs flex-shrink-0 hidden sm:block">23:40</span>
+        </div>
+
+        <div class="ep-card bg-[#080C14] rounded-xl px-5 sm:px-8 py-5 flex items-center gap-5 cursor-pointer reveal">
+          <span class="font-title text-[#7DF9FF] text-lg w-8 flex-shrink-0">36</span>
+          <div class="w-10 h-10 bg-[#C0392B11] border border-[#C0392B33] rounded-lg flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-play text-[#C0392B] text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif text-white text-sm sm:text-base truncate">Hisoka × Is × Sneaky</h4>
+            <p class="text-slate-600 text-xs truncate">Heavens Arena Arc · Bungee Gum revealed</p>
+          </div>
+          <span class="text-slate-600 text-xs flex-shrink-0 hidden sm:block">23:40</span>
+        </div>
+
+        <div class="ep-card bg-[#080C14] rounded-xl px-5 sm:px-8 py-5 flex items-center gap-5 cursor-pointer reveal">
+          <span class="font-title text-[#7DF9FF] text-lg w-8 flex-shrink-0">116</span>
+          <div class="w-10 h-10 bg-[#7DF9FF11] border border-[#7DF9FF33] rounded-lg flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-play text-[#7DF9FF] text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif text-white text-sm sm:text-base truncate">Defeat × And × Disgrace</h4>
+            <p class="text-slate-600 text-xs truncate">Chimera Ant Arc · The most devastating episode</p>
+          </div>
+          <span class="text-slate-600 text-xs flex-shrink-0 hidden sm:block">23:40</span>
+        </div>
+
+        <div class="ep-card bg-[#080C14] rounded-xl px-5 sm:px-8 py-5 flex items-center gap-5 cursor-pointer reveal">
+          <span class="font-title text-[#7DF9FF] text-lg w-8 flex-shrink-0">131</span>
+          <div class="w-10 h-10 bg-[#F1C40F11] border border-[#F1C40F33] rounded-lg flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-play text-[#F1C40F] text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif text-white text-sm sm:text-base truncate">Raging × And × Rampaging</h4>
+            <p class="text-slate-600 text-xs truncate">Chimera Ant Arc · Gon's ultimate transformation</p>
+          </div>
+          <span class="text-slate-600 text-xs flex-shrink-0 hidden sm:block">23:40</span>
+        </div>
+
+        <div class="ep-card bg-[#080C14] rounded-xl px-5 sm:px-8 py-5 flex items-center gap-5 cursor-pointer reveal">
+          <span class="font-title text-[#7DF9FF] text-lg w-8 flex-shrink-0">148</span>
+          <div class="w-10 h-10 bg-[#C0392B11] border border-[#C0392B33] rounded-lg flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-play text-[#C0392B] text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-serif text-white text-sm sm:text-base truncate">Farewell × And × Scenery</h4>
+            <p class="text-slate-600 text-xs truncate">13th Hunter Chairman Election Arc · The finale</p>
+          </div>
+          <span class="text-slate-600 text-xs flex-shrink-0 hidden sm:block">23:40</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       NEN SYSTEM
+  ══════════════════════════════════════ -->
+  <section id="world" class="py-24 px-4 sm:px-8 bg-[#080C14]">
+    <div class="hxh-divider mb-16"></div>
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-14 reveal">
+        <span class="font-serif text-xs text-[#7DF9FF] tracking-[0.3em] uppercase mb-3 block">The Power System</span>
+        <h2 class="font-title text-3xl sm:text-4xl lg:text-5xl text-white mb-4">The Nen System</h2>
+        <p class="text-slate-500 max-w-2xl mx-auto leading-relaxed">Nen is the life energy of all living things. Its mastery is what separates a Hunter from a legend. Six types — each with its own strengths, weaknesses, and personality alignment.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <div class="bg-[#0D1421] border border-[#7DF9FF11] rounded-2xl p-7 hover:border-[#7DF9FF33] transition group reveal">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-[#7DF9FF11] border border-[#7DF9FF33] rounded-xl flex items-center justify-center text-2xl group-hover:bg-[#7DF9FF22] transition">💪</div>
+            <div>
+              <h3 class="font-title text-base text-white">Enhancement</h3>
+              <p class="text-[#7DF9FF] text-xs font-serif tracking-widest">GON · UVOGIN</p>
+            </div>
+          </div>
+          <p class="text-slate-500 text-sm leading-relaxed">Amplifies the user's natural abilities — strength, speed, healing. The most balanced and powerful type in raw combat. Simple but overwhelming.</p>
+        </div>
+
+        <div class="bg-[#0D1421] border border-[#94a3b811] rounded-2xl p-7 hover:border-[#94a3b833] transition group reveal">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-[#94a3b811] border border-[#94a3b833] rounded-xl flex items-center justify-center text-2xl group-hover:bg-[#94a3b822] transition">⚡</div>
+            <div>
+              <h3 class="font-title text-base text-white">Transmutation</h3>
+              <p class="text-slate-400 text-xs font-serif tracking-widest">KILLUA · HISOKA</p>
+            </div>
+          </div>
+          <p class="text-slate-500 text-sm leading-relaxed">Changes the properties of Nen aura to mimic another substance. Electricity, rubber, gum — the transmuter's imagination is the limit.</p>
+        </div>
+
+        <div class="bg-[#0D1421] border border-[#C0392B11] rounded-2xl p-7 hover:border-[#C0392B33] transition group reveal">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-[#C0392B11] border border-[#C0392B33] rounded-xl flex items-center justify-center text-2xl group-hover:bg-[#C0392B22] transition">🔗</div>
+            <div>
+              <h3 class="font-title text-base text-white">Conjuration</h3>
+              <p class="text-[#e74c3c] text-xs font-serif tracking-widest">KURAPIKA · KITE</p>
+            </div>
+          </div>
+          <p class="text-slate-500 text-sm leading-relaxed">Materializes physical objects out of Nen. The most training-intensive type. Conjured items disappear if concentration breaks — but the constructs can be extraordinarily complex.</p>
+        </div>
+
+        <div class="bg-[#0D1421] border border-[#F1C40F11] rounded-2xl p-7 hover:border-[#F1C40F33] transition group reveal">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-[#F1C40F11] border border-[#F1C40F33] rounded-xl flex items-center justify-center text-2xl group-hover:bg-[#F1C40F22] transition">💥</div>
+            <div>
+              <h3 class="font-title text-base text-white">Emission</h3>
+              <p class="text-[#F1C40F] text-xs font-serif tracking-widest">LEORIO · RAZOR</p>
+            </div>
+          </div>
+          <p class="text-slate-500 text-sm leading-relaxed">Projects Nen aura away from the body. The further from the body, the weaker the aura — but an Emitter can fire sustained blasts across vast distances.</p>
+        </div>
+
+        <div class="bg-[#0D1421] border border-[#a855f711] rounded-2xl p-7 hover:border-[#a855f733] transition group reveal">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-[#a855f711] border border-[#a855f733] rounded-xl flex items-center justify-center text-2xl group-hover:bg-[#a855f722] transition">🎭</div>
+            <div>
+              <h3 class="font-title text-base text-white">Manipulation</h3>
+              <p class="text-purple-400 text-xs font-serif tracking-widest">ILLUMI · SILVA</p>
+            </div>
+          </div>
+          <p class="text-slate-500 text-sm leading-relaxed">Controls living or non-living things using Nen. A Manipulator can seize command of enemies or objects — but control requires rules the user must follow precisely.</p>
+        </div>
+
+        <div class="bg-[#0D1421] border border-white/5 rounded-2xl p-7 hover:border-white/10 transition group reveal">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-2xl group-hover:bg-white/10 transition">👑</div>
+            <div>
+              <h3 class="font-title text-base text-white">Specialization</h3>
+              <p class="text-slate-400 text-xs font-serif tracking-widest">MERUEM · CHROLLO · NEFERPITOU</p>
+            </div>
+          </div>
+          <p class="text-slate-500 text-sm leading-relaxed">A sixth category that defies all classification. Specialist abilities are unique to the individual — abilities that steal, transform, or transcend the other five categories entirely.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       QUOTE BANNER
+  ══════════════════════════════════════ -->
+  <section class="py-20 px-4 sm:px-8 relative overflow-hidden" style="background:linear-gradient(135deg,#0a0014 0%,#080C14 50%,#140a00 100%);">
+    <div class="nen-grid absolute inset-0 opacity-30"></div>
+    <div class="relative z-10 max-w-4xl mx-auto text-center reveal">
+      <div class="text-6xl sm:text-8xl text-[#7DF9FF] opacity-20 font-title mb-6">"</div>
+      <blockquote class="font-serif text-xl sm:text-2xl lg:text-3xl text-white leading-relaxed mb-6" style="font-style:italic;">
+        You should enjoy the little detours to the fullest. Because that's where you'll find the things more important than what you want.
+      </blockquote>
+      <cite class="font-serif text-sm text-[#7DF9FF] tracking-[0.3em] uppercase not-italic">— Ging Freecss</cite>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════ -->
+  <footer class="bg-[#0D1421] border-t border-white/5 py-12 px-4 sm:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-7 h-7 border border-[#7DF9FF] rotate-45 flex items-center justify-center nen-glow">
+              <div class="w-2 h-2 bg-[#7DF9FF] rotate-45"></div>
+            </div>
+            <span class="font-title text-sm text-white tracking-widest">HXH</span>
+          </div>
+          <p class="text-slate-600 text-sm leading-relaxed">Hunter × Hunter. Original manga by Yoshihiro Togashi. 2011 anime adaptation by Madhouse. All rights reserved.</p>
+        </div>
+
+        <div>
+          <h4 class="font-serif text-xs text-[#7DF9FF] tracking-[0.3em] uppercase mb-4">Navigate</h4>
+          <ul class="space-y-2 text-slate-500 text-sm">
+            <li class="hover:text-white transition cursor-pointer">Story</li>
+            <li class="hover:text-white transition cursor-pointer">Characters</li>
+            <li class="hover:text-white transition cursor-pointer">Story Arcs</li>
+            <li class="hover:text-white transition cursor-pointer">Episodes</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="font-serif text-xs text-[#7DF9FF] tracking-[0.3em] uppercase mb-4">World</h4>
+          <ul class="space-y-2 text-slate-500 text-sm">
+            <li class="hover:text-white transition cursor-pointer">Nen System</li>
+            <li class="hover:text-white transition cursor-pointer">Hunter Association</li>
+            <li class="hover:text-white transition cursor-pointer">Phantom Troupe</li>
+            <li class="hover:text-white transition cursor-pointer">Chimera Ants</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="font-serif text-xs text-[#7DF9FF] tracking-[0.3em] uppercase mb-4">Stream On</h4>
+          <div class="flex flex-col gap-3">
+            <button class="btn-primary text-white text-xs px-5 py-3 rounded relative z-10 flex items-center gap-2 justify-center">▶ CRUNCHYROLL</button>
+            <button class="btn-outline text-xs px-5 py-3 rounded flex items-center gap-2 justify-center">▶ NETFLIX</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hxh-divider mb-6"></div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-slate-600 text-xs font-serif tracking-widest">© 2024 · HUNTER × HUNTER · YOSHIHIRO TOGASHI · MADHOUSE</p>
+        <div class="flex gap-5">
+          <i class="fa-brands fa-twitter text-slate-600 hover:text-[#7DF9FF] transition cursor-pointer text-lg"></i>
+          <i class="fa-brands fa-instagram text-slate-600 hover:text-[#7DF9FF] transition cursor-pointer text-lg"></i>
+          <i class="fa-brands fa-youtube text-slate-600 hover:text-[#C0392B] transition cursor-pointer text-lg"></i>
+          <i class="fa-brands fa-reddit text-slate-600 hover:text-[#F1C40F] transition cursor-pointer text-lg"></i>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ── MOBILE MENU ──
+    const btn = document.getElementById('menuBtn');
+    const menu = document.getElementById('mobileMenu');
+    btn.addEventListener('click', () => {
+      menu.classList.toggle('hidden');
+      menu.classList.toggle('flex');
+    });
+
+    // ── NEN CURSOR TRACKER ──
+    document.addEventListener('mousemove', e => {
+      document.body.style.setProperty('--cx', e.clientX + 'px');
+      document.body.style.setProperty('--cy', e.clientY + 'px');
+    });
+
+    // ── SCROLL REVEAL ──
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ── FLOATING PARTICLES ──
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 25; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const left = Math.random() * 100;
+      const dur  = 8 + Math.random() * 14;
+      const delay= Math.random() * -20;
+      const dx   = (Math.random() - 0.5) * 200 + 'px';
+      p.style.cssText = `left:${left}%;bottom:0;--dur:${dur}s;--delay:${delay}s;--dx:${dx};opacity:${0.3+Math.random()*0.7}`;
+      container.appendChild(p);
+    }
+  </script>
+</body>
+</html>
